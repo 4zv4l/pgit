@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 
 use Cwd;
+use POSIX 'strftime';
 
 my $PGIT_DIR = "@{[getcwd]}/.pgit";
 
@@ -22,18 +23,20 @@ sub get_commit_info {
   my ($info, $msg) = split "\n\n", join('', <$commit_file>);
   my %info;
   for my $line (split "\n", $info) {
-    my ($key, $value) = split ' ', $line;
+    my ($key, $value) = split ' ', $line, 2;
     $info{$key} = $value;
   }
-  ($info{parent}, $info{author}, $msg);
+  ($info{parent}, ($info{author} =~ /(.+)\s(\d+\s\+\d+)/), $msg);
 }
 
 my $commit = get_current_commit or die "No commit yet\n";
 
 while (1) {
-  my ($parent, $author, $msg) = get_commit_info($commit);
+  my ($parent, $author, $date, $msg) = get_commit_info($commit);
+  my ($timestamp, $timezone) = split ' ', $date;
   print "commit $commit\n";
-  print "Author: $author\n";
+  printf "Author: $author\n";
+  printf "Date: %s %s\n", strftime("%a %b %e %H:%M:%S %Y", localtime($timestamp)), $timezone;
   printf "%s\n\n", "\n$msg" =~ s/\n/\n    /rg;
   $commit = $parent or last;
 }

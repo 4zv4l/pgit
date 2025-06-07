@@ -79,7 +79,7 @@ sub build_commit {
   my $obj      = PGit::Object->new($sha);
   my $commit_str = "tree $tree\n";
   $commit_str   .= "parent $parent\n" if $parent;
-  $commit_str   .= "author $commiter\n";
+  $commit_str   .= "author $commiter @{[time, strftime '%z', gmtime]}\n";
   $commit_str   .= "\n$message\n";
   $obj->write($commit_str);
 

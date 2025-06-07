@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+
+use Cwd;
+
+my $PGIT_DIR = "@{[getcwd]}/.pgit";
+
+sub get_ref {
+  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
+  (split(' ', scalar <$head_file>))[1];
+}
+
+sub get_current_commit {
+  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
+  open my $branch_file, '<', $branch_path or return undef;
+  scalar <$branch_file>;
+}
+
+sub get_commit_info {
+  my ($commit_sha) = @_;
+  my $commit_hash_path  = sprintf "%s/%s", substr($commit_sha,0,2), substr($commit_sha,2);
+  open my $commit_file, '<', "$PGIT_DIR/objects/$commit_hash_path";
+  my ($info, $msg) = split "\n\n", join('', <$commit_file>);
+  my %info;
+  for my $line (split "\n", $info) {
+    my ($key, $value) = split ' ', $line;
+    $info{$key} = $value;
+  }
+  ($info{parent}, $info{author}, $msg);
+}
+
+my $commit = get_current_commit or die "No commit yet\n";
+
+while (1) {
+  my ($parent, $author, $msg) = get_commit_info($commit);
+  print "commit $commit\n";
+  print "Author: $author\n";
+  printf "%s\n\n", "\n$msg" =~ s/\n/\n    /rg;
+  $commit = $parent or last;
+}

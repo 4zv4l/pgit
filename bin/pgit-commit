@@ -5,21 +5,17 @@ use lib "$Bin/../lib";
 use PGit::Object;
 use Digest::SHA 'sha1_hex';
 use POSIX 'strftime';
-use Data::Printer;
 
 my $PGIT_DIR                = $PGit::Object::PGIT_DIR;
 my $INDEX_PATH              = "$PGIT_DIR/index";
-my $COMMIT_MESSAGE_TEMPLATE = <<COMMIT;
-# Title
-#
-# Body
-COMMIT
+my $COMMIT_MESSAGE_TEMPLATE = "# Title\n#\n# Body";
 
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 
 open my $index_file, '<', $INDEX_PATH or die "$INDEX_PATH: $!\n";
 my @index_files = <$index_file>;
 close $index_file;
+die "No file to commit\n" if @index_files == 0;
 
 my %index_tree = (); # tree of path with file => sha1
 for my $entry (@index_files) {
@@ -33,11 +29,29 @@ for my $entry (@index_files) {
   $href->{$paths[$#paths]} = $sha;
 }
 
+sub get_ref {
+  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
+  (split(' ', scalar <$head_file>))[1];
+}
+
+sub update_ref {
+  my ($commit_sha) = @_;
+  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
+  open my $branch_file, '>', $branch_path or die "$branch_path: $!\n";
+  print $branch_file $commit_sha;
+}
+
+sub get_parent_commit {
+  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
+  open my $branch_file, '<', $branch_path or return undef;
+  scalar <$branch_file>;
+}
+
 sub build_tree {
   my ($name, %tree) = @_;
-  my $sha            = sha1_hex(strftime("%FT%TZ", gmtime) . $name);
-  my $obj            = PGit::Object->new($sha);
-  my $tree_str       = "";
+  my $sha           = sha1_hex(strftime("%FT%TZ", gmtime) . $name);
+  my $obj           = PGit::Object->new($sha);
+  my $tree_str      = "";
 
   for my $key (keys %tree) {
     if (ref($tree{$key}) eq "HASH") {
@@ -47,9 +61,32 @@ sub build_tree {
       $tree_str .= "blob $tree{$key} $key\n";
     }
   }
-  print "--- $name ---\n$tree_str";
+  $obj->write($tree_str);
   
   $sha;
 }
 
-build_tree("root", %index_tree);
+sub build_commit {
+  my ($tree) = @_;
+  my $commit_message_path = "$PGIT_DIR/COMMIT_EDITMSG";
+  `echo "$COMMIT_MESSAGE_TEMPLATE" > $commit_message_path`;
+  `\$EDITOR $commit_message_path >/dev/tty`; # redirect for editor to work
+  open my $commit_message_file, '<', $commit_message_path or die "$commit_message_path: $!\n";
+  my $message  = join '', <$commit_message_file>;
+  my $commiter = "user";
+  my $parent   = get_parent_commit;
+  my $sha      = sha1_hex(strftime("%FT%TZ", gmtime) . $commiter);
+  my $obj      = PGit::Object->new($sha);
+  my $commit_str = "tree $tree\n";
+  $commit_str   .= "parent $parent\n" if $parent;
+  $commit_str   .= "author $commiter\n";
+  $commit_str   .= "\n$message\n";
+  $obj->write($commit_str);
+
+  $sha;
+}
+
+my $root_sha   = build_tree("root", %index_tree);
+my $commit_sha = build_commit($root_sha);
+update_ref($commit_sha);
+truncate "$INDEX_PATH", 0;

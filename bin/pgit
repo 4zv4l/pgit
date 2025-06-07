@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+
+# bin/pgit
+
+use File::Spec;
+use FindBin '$Bin';
+
+my ($command, @args) = @ARGV;
+
+die "Usage: pgit <command> [<args>]\n" unless $command;
+
+my $path_to_command = File::Spec->catfile($Bin, "pgit-$command");
+die "No such command\n" unless -f $path_to_command;
+
+exec $path_to_command, @args;

@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+
+# bin/pgit-add
+
+use Digest::SHA 'sha1_hex';
+use IO::Compress::Deflate qw(deflate $DeflateError);
+use File::Path 'make_path';
+use File::Spec;
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Object;
+
+my $PGIT_DIR    = ".pgit";
+my $OBJECTS_DIR = "$PGIT_DIR/objects";
+my $INDEX_PATH  = "$PGIT_DIR/index";
+
+die "Not a PGit Project\n" unless -d $PGIT_DIR;
+die "No path specified\n" if $#ARGV == -1;
+
+for my $path (@ARGV) {
+  $path = File::Spec->canonpath($path);
+  die "$path outside of project\n" if $path =~ /\.\./;
+  open my $file, '<', $path or die "$path: $!\n";
+  my $content = join '', <$file>;
+  my $sha     = sha1_hex($content);
+  deflate(\$content, \my $blob) or die "$DeflateError\n";
+  my $obj     = PGit::Object->new($sha);
+  $obj->write($blob);
+  open my $index_file, '>>', $INDEX_PATH or die "$index_file: $!\n";
+  print $index_file "$sha $path\n";
+}

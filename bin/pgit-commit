@@ -1,0 +1,55 @@
+#!/usr/bin/env perl
+
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Object;
+use Digest::SHA 'sha1_hex';
+use POSIX 'strftime';
+use Data::Printer;
+
+my $PGIT_DIR                = $PGit::Object::PGIT_DIR;
+my $INDEX_PATH              = "$PGIT_DIR/index";
+my $COMMIT_MESSAGE_TEMPLATE = <<COMMIT;
+# Title
+#
+# Body
+COMMIT
+
+die "Not a PGit Project\n" unless -d $PGIT_DIR;
+
+open my $index_file, '<', $INDEX_PATH or die "$INDEX_PATH: $!\n";
+my @index_files = <$index_file>;
+close $index_file;
+
+my %index_tree = (); # tree of path with file => sha1
+for my $entry (@index_files) {
+  my ($sha, $path) = split ' ', $entry;
+  my @paths        = File::Spec->splitdir($path);
+  $href            = \%index_tree;
+  for my $path (@paths[0..$#paths-1]) {
+    $href->{$path} = {} unless exists $href->{$path};
+    $href = $href->{$path};
+  }
+  $href->{$paths[$#paths]} = $sha;
+}
+
+sub build_tree {
+  my ($name, %tree) = @_;
+  my $sha            = sha1_hex(strftime("%FT%TZ", gmtime) . $name);
+  my $obj            = PGit::Object->new($sha);
+  my $tree_str       = "";
+
+  for my $key (keys %tree) {
+    if (ref($tree{$key}) eq "HASH") {
+      my $dir_sha = build_tree($key, %{$tree{$key}});
+      $tree_str .= "tree $dir_sha $key\n";
+    } else {
+      $tree_str .= "blob $tree{$key} $key\n";
+    }
+  }
+  print "--- $name ---\n$tree_str";
+  
+  $sha;
+}
+
+build_tree("root", %index_tree);

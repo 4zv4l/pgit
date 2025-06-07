@@ -1,0 +1,25 @@
+#!/usr/bin/env perl
+
+# bin/pgit-init
+
+use File::Path 'make_path';
+
+my $PGIT_DIR    = ".pgit";
+my $OBJECTS_DIR = "$PGIT_DIR/objects";
+my $REFS_DIR    = "$PGIT_DIR/refs";
+
+# build pgit dir
+die "Existing PGit project\n" if -d $PGIT_DIR;
+make_path($PGIT_DIR);
+
+# build objects dir
+make_path("$OBJECTS_DIR/info", "$OBJECTS_DIR/pack");
+
+# build refs dir
+make_path("$REFS_DIR/heads", "$REFS_DIR/tags");
+
+# init HEAD
+open my $HEAD, '>', "$PGIT_DIR/HEAD" or die "$!\n";
+print $HEAD "ref: refs/heads/master\n";
+
+print "PGit initialized in $PGIT_DIR\n";

@@ -2,8 +2,11 @@
 
 use Cwd;
 use POSIX 'strftime';
+use Data::Printer;
 
 my $PGIT_DIR = "@{[getcwd]}/.pgit";
+die "Not a PGit Project\n" unless -d $PGIT_DIR;
+my $LIST_FILES = $ARGV[0] =~ /-l|--list/ ? 1 : 0;
 
 sub get_ref {
   open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
@@ -26,17 +29,47 @@ sub get_commit_info {
     my ($key, $value) = split ' ', $line, 2;
     $info{$key} = $value;
   }
-  ($info{parent}, ($info{author} =~ /(.+)\s(\d+\s\+\d+)/), $msg);
+  ($info{parent},
+   ($info{author} =~ /(.+)\s(\d+\s\+\d+)/),
+   $msg,
+   stringify_files(0, get_files($info{tree})));
+}
+
+sub get_files {
+  my $object_id = shift;
+  my $object_path  = sprintf "%s/%s", substr($object_id,0,2), substr($object_id,2);
+  my %result;
+  open my $object_file, '<', "$PGIT_DIR/objects/$object_path" or die "$!\n";
+  for my $line (<$object_file>) {
+    my ($kind, $sha, $filename) = split ' ', $line, 3; chomp($filename);
+    $result{$filename} = $kind eq 'blob' ? $sha : {get_files($sha)};
+  }
+  %result;
+}
+
+sub stringify_files {
+  my ($indent, %fs) = @_;
+  my $str;
+  for my $key (sort keys %fs) {
+    if (ref($fs{$key}) eq "HASH") {
+      $str .= sprintf "%s- %s:\n", ' 'x$indent, $key;
+      $str .= stringify_files($indent+2, %{$fs{$key}});
+    } else {
+      $str .= sprintf "%s- %s\n", ' 'x$indent, $key;
+    }
+  }
+  $str;
 }
 
 my $commit = get_current_commit or die "No commit yet\n";
 
 while (1) {
-  my ($parent, $author, $date, $msg) = get_commit_info($commit);
+  my ($parent, $author, $date, $msg, $files) = get_commit_info($commit);
   my ($timestamp, $timezone) = split ' ', $date;
   print "commit $commit\n";
   printf "Author: $author\n";
   printf "Date: %s %s\n", strftime("%a %b %e %H:%M:%S %Y", localtime($timestamp)), $timezone;
   printf "%s\n\n", "\n$msg" =~ s/\n/\n    /rg;
+  print $files if $LIST_FILES;
   $commit = $parent or last;
 }

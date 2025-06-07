@@ -1,0 +1,22 @@
+#!/bin/env perl
+
+use Cwd;
+
+my $PGIT_DIR                = "@{[getcwd]}/.pgit";
+die "Not a PGit Project\n" unless -d $PGIT_DIR;
+
+my $verbose = $ARGV[0] =~ /-v|--verbose/ ? 1 : undef;
+
+sub get_branch {
+  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
+  my $ref = (split(' ', scalar <$head_file>))[1];
+  open my $branch, '<', "$PGIT_DIR/$ref" or die "$PGIT_DIR/$ref: $!\n";
+  ((split '/', $ref)[-1], scalar <$branch>);
+}
+
+my ($branch, $branch_id) = get_branch;
+if ($verbose) {
+  printf "On branch %s => %s\n", $branch, $branch_id;
+} else {
+  printf "On branch %s\n", $branch;  
+}

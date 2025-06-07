@@ -1,0 +1,35 @@
+#!/bin/env perl
+
+use Cwd;
+
+my $PGIT_DIR                = "@{[getcwd]}/.pgit";
+die "Not a PGit Project\n" unless -d $PGIT_DIR;
+
+my $target_branch = $ARGV[0] or list_branch();
+
+sub list_branch {
+  chdir "$PGIT_DIR/refs/heads/" or die "$!\n";
+  for my $path (glob "*") {
+    open my $file, '<', $path or die "$path: $!\n";
+    print "- $path => " . scalar <$file> . "\n";
+  }
+  exit
+}
+
+sub get_branch {
+  open my $branch, '<', "$PGIT_DIR/refs/heads/$target_branch" or return undef;
+  scalar <$branch>;
+}
+
+my ($branch_id) = get_branch;
+unless ($branch_id) {
+  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
+  my $ref = (split(' ', scalar <$head_file>))[1];
+  open my $branch_file, '<', "$PGIT_DIR/$ref" or die "$PGIT_DIR/$ref: $!\n";
+  my $branch = scalar <$branch_file>;
+  open my $target_branch_file, '>', "$PGIT_DIR/refs/heads/$target_branch" or die "$PGIT_DIR/refs/heads/$target_branch$!\n";
+  printf $target_branch_file $branch;
+}
+
+open my $head_file, '>', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
+print $head_file "ref: refs/heads/$target_branch";

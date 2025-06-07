@@ -2,7 +2,6 @@
 
 use Cwd;
 use POSIX 'strftime';
-use Data::Printer;
 
 my $PGIT_DIR = "@{[getcwd]}/.pgit";
 die "Not a PGit Project\n" unless -d $PGIT_DIR;

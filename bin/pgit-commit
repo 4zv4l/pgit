@@ -8,7 +8,7 @@ use POSIX 'strftime';
 
 my $PGIT_DIR                = $PGit::Object::PGIT_DIR;
 my $INDEX_PATH              = "$PGIT_DIR/index";
-my $COMMIT_MESSAGE_TEMPLATE = "# Title\n#\n# Body";
+my $COMMIT_MESSAGE_TEMPLATE = $ARGV[0] ? $ARGV[0] : "# Title\n#\n# Body";
 
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 

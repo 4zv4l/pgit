@@ -2,12 +2,10 @@
 
 package PGit::Object;
 
-use Cwd;
+use PGit::Common qw($PGIT_DIR $OBJECTS_DIR);
 use File::Path 'make_path';
-use Data::Printer;
-
-our $PGIT_DIR    = "@{[getcwd()]}/.pgit";
-our $OBJECTS_DIR = "$PGIT_DIR/objects";
+use strict;
+use warnings;
 
 sub new {
   my ($pkg, $sha) = @_;

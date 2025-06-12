@@ -4,6 +4,8 @@
 
 use File::Spec;
 use FindBin '$Bin';
+use strict;
+use warnings;
 
 my ($command, @args) = @ARGV;
 

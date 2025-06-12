@@ -1,17 +1,20 @@
 #!/bin/env perl
 
-use Cwd;
+use File::Basename;
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Common qw($PGIT_DIR get_head get_current_commit);
+use strict;
+use warnings;
 
-my $PGIT_DIR                = "@{[getcwd]}/.pgit";
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 
-my $verbose = $ARGV[0] =~ /-v|--verbose/ ? 1 : undef;
+my $verbose = !!($ARGV[0] and $ARGV[0] =~ /-v|--verbose/);
 
 sub get_branch {
-  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
-  my $ref = (split(' ', scalar <$head_file>))[1];
-  open my $branch, '<', "$PGIT_DIR/$ref" or die "$PGIT_DIR/$ref: $!\n";
-  ((split '/', $ref)[-1], scalar <$branch>);
+  my $ref = get_head;
+  my $branch_id = get_current_commit;
+  (basename($ref), $branch_id);
 }
 
 my ($branch, $branch_id) = get_branch;

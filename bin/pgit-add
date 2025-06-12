@@ -9,10 +9,7 @@ use File::Spec;
 use FindBin '$Bin';
 use lib "$Bin/../lib";
 use PGit::Object;
-
-my $PGIT_DIR    = ".pgit";
-my $OBJECTS_DIR = "$PGIT_DIR/objects";
-my $INDEX_PATH  = "$PGIT_DIR/index";
+use PGit::Common qw($PGIT_DIR $OBJECTS_DIR $INDEX_PATH);
 
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 die "No path specified\n" if $#ARGV == -1;

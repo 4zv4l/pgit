@@ -1,8 +1,11 @@
 #!/bin/env perl
 
-use Cwd;
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Common qw($PGIT_DIR get_branch_by_name);
+use strict;
+use warnings;
 
-my $PGIT_DIR                = "@{[getcwd]}/.pgit";
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 
 my $target_branch = $ARGV[0] or list_branch();
@@ -16,12 +19,7 @@ sub list_branch {
   exit
 }
 
-sub get_branch {
-  open my $branch, '<', "$PGIT_DIR/refs/heads/$target_branch" or return undef;
-  scalar <$branch>;
-}
-
-my ($branch_id) = get_branch;
+my ($branch_id) = get_branch_by_name($target_branch);
 unless ($branch_id) {
   open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
   my $ref = (split(' ', scalar <$head_file>))[1];

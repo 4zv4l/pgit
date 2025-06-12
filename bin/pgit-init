@@ -2,11 +2,12 @@
 
 # bin/pgit-init
 
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Common qw($PGIT_DIR $OBJECTS_DIR $REFS_DIR);
 use File::Path 'make_path';
-
-my $PGIT_DIR    = ".pgit";
-my $OBJECTS_DIR = "$PGIT_DIR/objects";
-my $REFS_DIR    = "$PGIT_DIR/refs";
+use strict;
+use warnings;
 
 # build pgit dir
 die "Existing PGit project\n" if -d $PGIT_DIR;

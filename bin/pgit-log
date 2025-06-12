@@ -2,21 +2,14 @@
 
 use Cwd;
 use POSIX 'strftime';
+use FindBin '$Bin';
+use lib "$Bin/../lib";
+use PGit::Common qw($PGIT_DIR get_current_commit);
+use strict;
+use warnings;
 
-my $PGIT_DIR = "@{[getcwd]}/.pgit";
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
 my $LIST_FILES = $ARGV[0] =~ /-l|--list/ ? 1 : 0;
-
-sub get_ref {
-  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
-  (split(' ', scalar <$head_file>))[1];
-}
-
-sub get_current_commit {
-  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
-  open my $branch_file, '<', $branch_path or return undef;
-  scalar <$branch_file>;
-}
 
 sub get_commit_info {
   my ($commit_sha) = @_;
@@ -54,7 +47,7 @@ sub stringify_files {
       $str .= sprintf "%s- %s:\n", ' 'x$indent, $key;
       $str .= stringify_files($indent+2, %{$fs{$key}});
     } else {
-      $str .= sprintf "%s- %s\n", ' 'x$indent, $key;
+      $str .= sprintf "%s- %s => %s\n", ' 'x$indent, $key, $fs{$key};
     }
   }
   $str;

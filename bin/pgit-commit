@@ -3,14 +3,14 @@
 use FindBin '$Bin';
 use lib "$Bin/../lib";
 use PGit::Object;
+use PGit::Common qw($PGIT_DIR $INDEX_PATH get_head update_head get_current_commit);
 use Digest::SHA 'sha1_hex';
 use POSIX 'strftime';
-
-my $PGIT_DIR                = $PGit::Object::PGIT_DIR;
-my $INDEX_PATH              = "$PGIT_DIR/index";
-my $COMMIT_MESSAGE_TEMPLATE = $ARGV[0] ? $ARGV[0] : "# Title\n#\n# Body";
+use strict;
+use warnings;
 
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
+my $COMMIT_MESSAGE_TEMPLATE = $ARGV[0] ? $ARGV[0] : "# Title\n#\n# Body";
 
 open my $index_file, '<', $INDEX_PATH or die "$INDEX_PATH: $!\n";
 my @index_files = <$index_file>;
@@ -21,30 +21,12 @@ my %index_tree = (); # tree of path with file => sha1
 for my $entry (@index_files) {
   my ($sha, $path) = split ' ', $entry;
   my @paths        = File::Spec->splitdir($path);
-  $href            = \%index_tree;
+  my $href         = \%index_tree;
   for my $path (@paths[0..$#paths-1]) {
     $href->{$path} = {} unless exists $href->{$path};
     $href = $href->{$path};
   }
   $href->{$paths[$#paths]} = $sha;
-}
-
-sub get_ref {
-  open my $head_file, '<', "$PGIT_DIR/HEAD" or die "$PGIT_DIR/HEAD: $!\n";
-  (split(' ', scalar <$head_file>))[1];
-}
-
-sub update_ref {
-  my ($commit_sha) = @_;
-  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
-  open my $branch_file, '>', $branch_path or die "$branch_path: $!\n";
-  print $branch_file $commit_sha;
-}
-
-sub get_parent_commit {
-  my $branch_path = "$PGIT_DIR/@{[get_ref]}";
-  open my $branch_file, '<', $branch_path or return undef;
-  scalar <$branch_file>;
 }
 
 sub build_tree {
@@ -74,7 +56,7 @@ sub build_commit {
   open my $commit_message_file, '<', $commit_message_path or die "$commit_message_path: $!\n";
   my $message  = join '', <$commit_message_file>;
   my $commiter = "user";
-  my $parent   = get_parent_commit;
+  my $parent   = get_current_commit; # check if exists if yes take sha1hex
   my $sha      = sha1_hex(strftime("%FT%TZ", gmtime) . $commiter);
   my $obj      = PGit::Object->new($sha);
   my $commit_str = "tree $tree\n";

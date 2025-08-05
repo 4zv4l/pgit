@@ -70,5 +70,5 @@ sub build_commit {
 
 my $root_sha   = build_tree("root", %index_tree);
 my $commit_sha = build_commit($root_sha);
-update_ref($commit_sha);
+update_head($commit_sha);
 truncate "$INDEX_PATH", 0;

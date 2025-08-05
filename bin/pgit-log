@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 die "Not a PGit Project\n" unless -d $PGIT_DIR;
-my $LIST_FILES = $ARGV[0] =~ /-l|--list/ ? 1 : 0;
+my $LIST_FILES = ($ARGV[0] and $ARGV[0] =~ /-l|--list/) ? 1 : 0;
 
 sub get_commit_info {
   my ($commit_sha) = @_;
